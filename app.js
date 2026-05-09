@@ -56,6 +56,128 @@ function saveState() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {}
+  syncMarkLocal();
+  syncPush();
+}
+
+// ====== Cloud sync (Vercel KV) ======
+
+const SYNC_URL = "/api/state";
+let syncEnabled = false;
+let syncPullTimer = null;
+let syncPushDebounce = null;
+let syncLastHash = "";
+
+function syncableFields() {
+  return {
+    teams: state.teams,
+    matches: state.matches,
+    rotation: state.rotation,
+    rotationIdx: state.rotationIdx,
+    history: state.history,
+    quarterDurationSeconds: state.quarterDurationSeconds,
+  };
+}
+
+function hashFields(v) { try { return JSON.stringify(v); } catch (e) { return ""; } }
+
+function syncMarkLocal() {
+  syncLastHash = hashFields(syncableFields());
+}
+
+function setSyncIndicator(connected) {
+  let el = document.getElementById("syncDot");
+  if (!el) {
+    el = document.createElement("span");
+    el.id = "syncDot";
+    el.className = "sync-dot";
+    const brand = document.querySelector(".brand");
+    if (brand) brand.insertBefore(el, brand.firstChild);
+  }
+  el.classList.toggle("connected", !!connected);
+  el.title = connected ? "다른 디바이스와 실시간 동기화 중" : "동기화 비활성 — 로컬에만 저장";
+}
+
+async function syncBoot() {
+  try {
+    const r = await fetch(SYNC_URL, { cache: "no-store" });
+    if (!r.ok) {
+      syncEnabled = false;
+      setSyncIndicator(false);
+      return;
+    }
+    const data = await r.json();
+    syncEnabled = true;
+    setSyncIndicator(true);
+    if (data.state) {
+      const h = hashFields(data.state);
+      if (h !== hashFields(syncableFields())) applyRemoteState(data.state);
+      syncLastHash = h;
+    } else {
+      // 아무도 아직 push 안 함 → 우리가 첫 푸시
+      syncMarkLocal();
+      syncPush(true);
+    }
+    if (!syncPullTimer) syncPullTimer = setInterval(syncPull, 1000);
+  } catch (e) {
+    syncEnabled = false;
+    setSyncIndicator(false);
+  }
+}
+
+async function syncPull() {
+  if (!syncEnabled) return;
+  try {
+    const r = await fetch(SYNC_URL, { cache: "no-store" });
+    if (!r.ok) return;
+    const data = await r.json();
+    if (!data.state) return;
+    const h = hashFields(data.state);
+    if (h === syncLastHash) return;
+    syncLastHash = h;
+    applyRemoteState(data.state);
+  } catch (e) {}
+}
+
+function syncPush(immediate) {
+  if (!syncEnabled) return;
+  if (syncPushDebounce) { clearTimeout(syncPushDebounce); syncPushDebounce = null; }
+  const doPush = async () => {
+    syncPushDebounce = null;
+    try {
+      const body = syncableFields();
+      syncLastHash = hashFields(body);
+      await fetch(SYNC_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch (e) {}
+  };
+  if (immediate) doPush();
+  else syncPushDebounce = setTimeout(doPush, 250);
+}
+
+function applyRemoteState(remote) {
+  const prevMatchCount = state.matches.length;
+  state.teams = Array.isArray(remote.teams) ? remote.teams : state.teams;
+  state.matches = Array.isArray(remote.matches) ? remote.matches : state.matches;
+  state.rotation = Array.isArray(remote.rotation) ? remote.rotation : state.rotation;
+  state.rotationIdx = typeof remote.rotationIdx === "number" ? remote.rotationIdx : state.rotationIdx;
+  state.history = Array.isArray(remote.history) ? remote.history : state.history;
+  state.quarterDurationSeconds = typeof remote.quarterDurationSeconds === "number" ? remote.quarterDurationSeconds : state.quarterDurationSeconds;
+  if (state.matches.length !== prevMatchCount) {
+    state.timerRunning = false;
+    state.timerSecondsLeft = state.quarterDurationSeconds;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+  if (state.timerSecondsLeft > state.quarterDurationSeconds) {
+    state.timerSecondsLeft = state.quarterDurationSeconds;
+  }
+  ensureRotation();
+  ensureCurrentMatch();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  renderAll();
 }
 
 // ====== Rotation ======
@@ -822,3 +944,4 @@ function bindEvents() {
 
 bindEvents();
 renderAll();
+syncBoot();
