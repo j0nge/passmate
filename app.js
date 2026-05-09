@@ -402,7 +402,7 @@ function renderTeams() {
     const scoreHtml = isPlaying
       ? `
         <div class="score-area" data-team-id="${team.id}">
-          <div class="score-current">${myScore}</div>
+          <div class="score-current" style="color:${team.color}">${myScore}</div>
           <div class="score-meta">
             <span>이번 매치</span>
             ${pairTotal ? `<span class="total">vs ${escapeHtml(opp.name)} 누적 ${pairTotal.a}점</span>` : ""}
@@ -501,12 +501,12 @@ function renderPairings() {
     card.innerHTML = `
       <div class="pairing-side left">
         <div class="pname"><span class="pdot" style="background:${a.color}"></span>${escapeHtml(a.name)}</div>
-        <div class="pscore">${total.a}</div>
+        <div class="pscore" style="color:${a.color}">${total.a}</div>
       </div>
       <div class="pairing-divider">:</div>
       <div class="pairing-side right">
         <div class="pname">${escapeHtml(b.name)}<span class="pdot" style="background:${b.color}"></span></div>
-        <div class="pscore">${total.b}</div>
+        <div class="pscore" style="color:${b.color}">${total.b}</div>
       </div>
     `;
     root.appendChild(card);
