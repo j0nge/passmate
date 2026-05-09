@@ -189,12 +189,12 @@ input { user-select: text; -webkit-user-select: text; }
   letter-spacing: -.3px;
 }
 .team-color-dot { width: 14px; height: 14px; }
-.team-header { padding: 14px 16px; }
+.team-header { padding: 10px 14px; }
 .team-name[readonly] { pointer-events: none; }
 .del-team { flex-shrink: 0; }
 
 .score-area {
-  padding: 18px 16px 10px;
+  padding: 10px 16px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -222,12 +222,12 @@ input { user-select: text; -webkit-user-select: text; }
 .score-area.resting-label::after { content: ""; }
 .score-area.resting-label:active { background: transparent; }
 .score-current {
-  font-size: clamp(56px, 16vw, 112px);
+  font-size: clamp(72px, 16vw, 130px);
   font-weight: 900;
   color: var(--accent);
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
 }
 .score-meta { display: none; }
 
@@ -243,12 +243,12 @@ input { user-select: text; -webkit-user-select: text; }
 .score-controls .minus { min-width: 80px; }
 
 .players-area {
-  padding: 6px 12px 14px;
+  padding: 6px 12px 10px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-  min-height: 48px;
 }
+.players-area:empty { padding: 0; }
 .player-btn {
   background: var(--panel-2);
   color: var(--text);
@@ -500,8 +500,8 @@ body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
   .timer-display { font-size: clamp(56px, 10vw, 100px); }
   .timer-row { margin-bottom: 12px; }
   .matchup-inline-edit { display: inline-flex; }
-  .score-current { font-size: clamp(56px, 10vw, 100px); }
-  .score-area { padding: 16px 16px 8px; }
+  .score-current { font-size: clamp(96px, 13vw, 140px); }
+  .score-area { padding: 8px 16px 4px; }
   .team-name { font-size: 26px; }
   .team-color-dot { width: 16px; height: 16px; }
   .pairings-list { grid-template-columns: 1fr; gap: 8px; }
