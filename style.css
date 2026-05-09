@@ -177,8 +177,8 @@ input { user-select: text; -webkit-user-select: text; }
   border: 1px solid rgba(255,255,255,.15);
 }
 .team-name {
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 900;
   background: transparent;
   color: var(--text);
   border: none;
@@ -186,7 +186,10 @@ input { user-select: text; -webkit-user-select: text; }
   flex: 1;
   min-width: 0;
   padding: 4px 0;
+  letter-spacing: -.3px;
 }
+.team-color-dot { width: 14px; height: 14px; }
+.team-header { padding: 14px 16px; }
 .team-name[readonly] { pointer-events: none; }
 .del-team { flex-shrink: 0; }
 
@@ -225,16 +228,7 @@ input { user-select: text; -webkit-user-select: text; }
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.score-meta {
-  display: flex;
-  gap: 14px;
-  margin-top: 6px;
-  color: var(--text-mute);
-  font-size: 13px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.score-meta .total { color: var(--text); font-weight: 700; }
+.score-meta { display: none; }
 
 .score-controls {
   padding: 0 16px 10px;
@@ -481,6 +475,36 @@ body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
 .sortable-ghost { opacity: .25; }
 .sortable-chosen { transform: scale(1.05); }
 .sortable-drag { opacity: .9; box-shadow: var(--shadow); }
+
+.matchup-inline-edit { display: none; }
+
+/* iPad 가로 / 데스크탑: 2열 그리드 */
+@media (min-width: 1024px) {
+  #app {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 14px;
+    align-items: start;
+  }
+  .topbar { grid-column: 1 / -1; }
+  .timer-section { grid-column: 1; grid-row: 2; }
+  .teams-section { grid-column: 1; grid-row: 3; margin-bottom: 0; }
+  .pairings-section { grid-column: 2; grid-row: 2; }
+  .record-section { grid-column: 2; grid-row: 3; margin-bottom: 0; }
+  .timer-section { padding: 14px 16px 16px; }
+  .matchup-bar { display: none; }
+  .timer-display { font-size: clamp(56px, 10vw, 100px); }
+  .timer-row { margin-bottom: 12px; }
+  .matchup-inline-edit { display: inline-flex; }
+  .score-current { font-size: 78px; }
+  .score-area { padding: 16px 16px 8px; }
+  .team-name { font-size: 26px; }
+  .team-color-dot { width: 16px; height: 16px; }
+  .pairings-list { grid-template-columns: 1fr; gap: 8px; }
+  .pairing-side .pname { font-size: 13px; }
+  .pairing-side .pscore { font-size: 24px; }
+  .pairing-card { padding: 10px 12px; }
+}
 
 /* 모바일 */
 @media (max-width: 640px) {

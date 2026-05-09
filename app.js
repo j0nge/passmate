@@ -663,6 +663,10 @@ function bindEvents() {
     if (state.editMode) return;
     showMatchupModal();
   });
+  document.getElementById("changeMatchupBtn").addEventListener("click", () => {
+    if (state.editMode) return;
+    showMatchupModal();
+  });
 
   document.getElementById("editTimerBtn").addEventListener("click", () => {
     document.getElementById("minutesInput").value = Math.floor(state.quarterDurationSeconds / 60);
