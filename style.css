@@ -47,14 +47,6 @@ input { user-select: text; -webkit-user-select: text; }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; }
 .brand .logo { font-size: 22px; }
 .brand .title { letter-spacing: 1.5px; }
-.sync-dot {
-  display: inline-block;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--text-mute);
-  flex-shrink: 0;
-}
-.sync-dot.connected { background: var(--good); box-shadow: 0 0 6px rgba(56, 211, 159, .6); }
 .topbar-actions { display: flex; gap: 8px; }
 
 .btn {
@@ -522,7 +514,6 @@ body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
 @media (max-width: 640px) {
   #app { padding: 8px 8px calc(96px + env(safe-area-inset-bottom)); }
   .teams-section { grid-template-columns: 1fr; gap: 10px; }
-  .topbar .title { display: none; }
   .timer-controls .btn { flex: 1; min-width: 0; }
   .timer-controls .btn.primary.big { flex: 1.2; }
   .timer-display { letter-spacing: 1px; }

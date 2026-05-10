@@ -85,18 +85,7 @@ function syncMarkLocal() {
   syncLastHash = hashFields(syncableFields());
 }
 
-function setSyncIndicator(connected) {
-  let el = document.getElementById("syncDot");
-  if (!el) {
-    el = document.createElement("span");
-    el.id = "syncDot";
-    el.className = "sync-dot";
-    const brand = document.querySelector(".brand");
-    if (brand) brand.insertBefore(el, brand.firstChild);
-  }
-  el.classList.toggle("connected", !!connected);
-  el.title = connected ? "다른 디바이스와 실시간 동기화 중" : "동기화 비활성 — 로컬에만 저장";
-}
+function setSyncIndicator() { /* sync dot removed per user request */ }
 
 async function syncBoot() {
   try {
