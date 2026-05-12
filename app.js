@@ -803,6 +803,13 @@ function bindEvents() {
     modal.addEventListener("click", (e) => {
       if (e.target === modal) modal.classList.add("hidden");
     });
+    // Generic cancel handler — closes parent modal. showConfirm/showPrompt/
+    // showMatchupModal also register their own to clean up their OK listener,
+    // both fire on cancel which is idempotent.
+    const cancelBtn = modal.querySelector(".modal-cancel");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => modal.classList.add("hidden"));
+    }
   });
 
   document.getElementById("toggleEdit").addEventListener("click", (e) => {
@@ -932,5 +939,106 @@ function bindEvents() {
 }
 
 bindEvents();
+bindScrollHide();
+bindA2hs();
 renderAll();
 syncBoot();
+maybeShowA2hs();
+
+// ====== A2HS (Add to Home Screen) guide ======
+
+const A2HS_DISMISS_KEY = "passmate-a2hs-dismissed-v1";
+
+function isMobileOrTabletDevice() {
+  const narrow = window.matchMedia("(max-width: 1023px)").matches;
+  const touchUA = /Mobi|Tablet|iPad|iPhone|Android/i.test(navigator.userAgent);
+  // Some iPads identify as Mac — also check touchpoints
+  const iPadOnMac = /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+  return narrow && (touchUA || iPadOnMac);
+}
+
+function isStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true
+  );
+}
+
+function detectPlatform() {
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua)) return "ios";
+  if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return "ios";
+  return "android";
+}
+
+function selectA2hsTab(platform) {
+  document.querySelectorAll(".a2hs-tab").forEach((t) => {
+    t.classList.toggle("active", t.dataset.platform === platform);
+  });
+  document.querySelectorAll(".a2hs-panel").forEach((p) => {
+    p.classList.toggle("hidden", p.dataset.panel !== platform);
+  });
+}
+
+function showA2hsModal() {
+  const modal = document.getElementById("a2hsModal");
+  if (!modal) return;
+  selectA2hsTab(detectPlatform());
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function hideA2hsModal() {
+  const modal = document.getElementById("a2hsModal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+function maybeShowA2hs() {
+  if (isStandalone()) return;
+  if (!isMobileOrTabletDevice()) return;
+  if (localStorage.getItem(A2HS_DISMISS_KEY) === "yes") return;
+  // small delay so the modal doesn't slam in on first paint
+  setTimeout(showA2hsModal, 900);
+}
+
+function bindA2hs() {
+  document.querySelectorAll(".a2hs-tab").forEach((t) => {
+    t.addEventListener("click", () => selectA2hsTab(t.dataset.platform));
+  });
+  const closeBtn = document.getElementById("a2hsCloseBtn");
+  const dismissBtn = document.getElementById("a2hsDismissBtn");
+  const openBtn = document.getElementById("a2hsBtn");
+  if (closeBtn) closeBtn.addEventListener("click", hideA2hsModal);
+  if (dismissBtn) {
+    dismissBtn.addEventListener("click", () => {
+      try { localStorage.setItem(A2HS_DISMISS_KEY, "yes"); } catch (e) {}
+      hideA2hsModal();
+    });
+  }
+  if (openBtn) openBtn.addEventListener("click", showA2hsModal);
+}
+
+function bindScrollHide() {
+  const bar = document.querySelector(".topbar");
+  if (!bar) return;
+  let lastY = window.scrollY;
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      const dy = y - lastY;
+      if (Math.abs(dy) > 4) {
+        if (dy > 0 && y > 40) bar.classList.add("hidden-bar");
+        else if (dy < 0) bar.classList.remove("hidden-bar");
+        lastY = y;
+      }
+      if (y < 8) bar.classList.remove("hidden-bar");
+      ticking = false;
+    });
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+}

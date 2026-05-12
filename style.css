@@ -42,7 +42,18 @@ input { user-select: text; -webkit-user-select: text; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 4px 14px;
+  padding: 6px 16px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--bg);
+  margin: 0 -16px 4px;
+  transition: transform .25s ease, opacity .25s ease;
+}
+.topbar.hidden-bar {
+  transform: translateY(-110%);
+  opacity: 0;
+  pointer-events: none;
 }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; }
 .brand .logo { font-size: 22px; }
@@ -513,12 +524,77 @@ body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
 
 /* 모바일 */
 @media (max-width: 640px) {
-  #app { padding: 8px 8px calc(96px + env(safe-area-inset-bottom)); }
-  .teams-section { grid-template-columns: 1fr; gap: 10px; }
+  #app { padding: 6px 8px calc(88px + env(safe-area-inset-bottom)); }
+  .topbar { margin: 0 -8px 2px; padding: 4px 10px 8px; }
+  .teams-section { grid-template-columns: 1fr; gap: 8px; margin-bottom: 10px; }
+  .timer-section { padding: 10px 12px 12px; margin-bottom: 10px; }
+  .matchup-bar { margin-bottom: 6px; }
+  .timer-row { margin-bottom: 8px; }
   .timer-controls .btn { flex: 1; min-width: 0; }
   .timer-controls .btn.primary.big { flex: 1.2; }
-  .timer-display { letter-spacing: 1px; }
+  .timer-display { letter-spacing: 1px; font-size: clamp(56px, 17vw, 100px); }
+  .score-current { font-size: clamp(72px, 20vw, 120px); }
+  .team-header { padding: 8px 12px; }
+  .team-name { font-size: 18px; }
+  .score-area { padding: 6px 12px 2px; }
+  .score-controls { padding: 8px 12px 8px; }
+  .players-area { padding: 4px 10px 8px; }
   .matchup-pickers { grid-template-columns: 1fr; }
+  .pairings-section, .record-section { padding: 12px 14px; margin-bottom: 10px; }
+}
+
+/* A2HS 모달 */
+.a2hs-content { max-width: 440px; }
+.a2hs-content h2 { font-size: 19px; margin-bottom: 6px; }
+.a2hs-content .muted { font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+.a2hs-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+.a2hs-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-mute);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  touch-action: manipulation;
+  transition: color .15s;
+}
+.a2hs-tab:active { transform: scale(.97); }
+.a2hs-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.a2hs-panel ol {
+  padding-left: 22px;
+  line-height: 1.7;
+  font-size: 14px;
+  color: var(--text);
+}
+.a2hs-panel ol li { margin-bottom: 8px; }
+.a2hs-panel strong { color: var(--accent-2); font-weight: 700; }
+.a2hs-hint { color: var(--text-mute); font-size: 12px; font-weight: 400; }
+.a2hs-icon {
+  display: inline-block;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 12px;
+  color: var(--accent-2);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.a2hs-actions { margin-top: 18px; }
+.a2hs-btn { padding: 7px 10px; font-size: 16px; line-height: 1; }
+@media (min-width: 1024px) {
+  .a2hs-btn { display: none; }
 }
 
 /* 토스트 */
