@@ -581,15 +581,13 @@ body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
 .a2hs-panel ol li { margin-bottom: 8px; }
 .a2hs-panel strong { color: var(--accent-2); font-weight: 700; }
 .a2hs-hint { color: var(--text-mute); font-size: 12px; font-weight: 400; }
-.a2hs-icon {
+.a2hs-share {
   display: inline-block;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1px 6px;
-  font-size: 12px;
+  width: 14px;
+  height: 17px;
+  vertical-align: -3px;
+  margin: 0 2px;
   color: var(--accent-2);
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .a2hs-actions { margin-top: 18px; }
 .a2hs-btn { padding: 7px 10px; font-size: 16px; line-height: 1; }
