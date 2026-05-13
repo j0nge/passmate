@@ -55,7 +55,22 @@ input { user-select: text; -webkit-user-select: text; }
   opacity: 0;
   pointer-events: none;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 8px;
+  transition: opacity .12s, background .12s;
+}
+.brand:active { opacity: .6; background: var(--panel-2); }
 .brand .logo { font-size: 22px; }
 .brand .title { letter-spacing: 1.5px; }
 .topbar-actions { display: flex; gap: 8px; }

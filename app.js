@@ -812,6 +812,24 @@ function bindEvents() {
     }
   });
 
+  const brand = document.getElementById("brandReload");
+  if (brand) {
+    const doReload = () => {
+      // Push any pending change immediately so we don't lose unsynced state
+      if (typeof syncPushDebounce !== "undefined" && syncPushDebounce) {
+        clearTimeout(syncPushDebounce);
+        syncPushDebounce = null;
+        syncPush(true);
+      }
+      // Small delay to let the push start before navigation
+      setTimeout(() => window.location.reload(), 80);
+    };
+    brand.addEventListener("click", doReload);
+    brand.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); doReload(); }
+    });
+  }
+
   document.getElementById("toggleEdit").addEventListener("click", (e) => {
     state.editMode = !state.editMode;
     e.target.textContent = state.editMode ? "완료" : "편집";
