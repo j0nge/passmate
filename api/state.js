@@ -3,10 +3,36 @@ import { Redis } from "@upstash/redis";
 const STATE_KEY = "passmate:state";
 
 function getRedis() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  return new Redis({ url, token });
+  // Try a sequence of well-known env var names. Vercel's Upstash/KV
+  // integration historically uses KV_REST_API_*, the standalone Upstash
+  // integration uses UPSTASH_REDIS_REST_*, and some newer flows let the
+  // user pick a custom prefix (e.g. STORAGE_KV_REST_API_URL).
+  const candidates = [
+    ["KV_REST_API_URL", "KV_REST_API_TOKEN"],
+    ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+    ["STORAGE_KV_REST_API_URL", "STORAGE_KV_REST_API_TOKEN"],
+  ];
+  for (const [urlKey, tokenKey] of candidates) {
+    if (process.env[urlKey] && process.env[tokenKey]) {
+      return new Redis({ url: process.env[urlKey], token: process.env[tokenKey] });
+    }
+  }
+  // Last resort: scan env for any *_KV_REST_API_URL / *_KV_REST_API_TOKEN pair
+  const keys = Object.keys(process.env);
+  const urlKey = keys.find((k) => /KV_REST_API_URL$/.test(k));
+  if (urlKey) {
+    const tokenKey = urlKey.replace(/_URL$/, "_TOKEN");
+    if (process.env[urlKey] && process.env[tokenKey]) {
+      return new Redis({ url: process.env[urlKey], token: process.env[tokenKey] });
+    }
+  }
+  return null;
+}
+
+function listKvLikeEnv() {
+  return Object.keys(process.env)
+    .filter((k) => /KV|UPSTASH|REDIS/.test(k))
+    .sort();
 }
 
 export default async function handler(req, res) {
@@ -14,7 +40,11 @@ export default async function handler(req, res) {
 
   const redis = getRedis();
   if (!redis) {
-    return res.status(503).json({ error: "KV not configured" });
+    return res.status(503).json({
+      error: "KV not configured",
+      hint: "Connect an Upstash for Redis (Vercel KV) database to this project and redeploy.",
+      detected: listKvLikeEnv(),
+    });
   }
 
   try {
