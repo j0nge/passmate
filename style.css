@@ -169,13 +169,6 @@ input { user-select: text; -webkit-user-select: text; }
 .swap-btn:active { transform: translate(-50%, -50%) scale(.92); }
 .swap-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-.matchup-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
 .quarter-pill {
   display: inline-flex;
   align-items: center;
@@ -187,38 +180,16 @@ input { user-select: text; -webkit-user-select: text; }
   font-weight: 800;
   font-size: 14px;
   letter-spacing: .5px;
+  flex-shrink: 0;
 }
 .quarter-pill-label { opacity: .7; }
-.matchup-select {
-  flex: 1;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 12px;
-  padding: 8px 12px;
-  font-size: 15px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  cursor: pointer;
-  min-height: 42px;
-  touch-action: manipulation;
-}
-.matchup-select:active { transform: scale(.98); }
-.mu-team { display: inline-flex; align-items: center; gap: 6px; max-width: 38%; overflow: hidden; }
-.mu-team span:not(.mu-dot) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mu-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,.15); }
-.mu-vs { color: var(--text-mute); font-size: 13px; font-weight: 600; flex-shrink: 0; }
-.mu-edit { color: var(--text-mute); font-size: 13px; margin-left: 4px; flex-shrink: 0; }
 
 .timer-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 .timer-display {
   font-size: clamp(72px, 19vw, 144px);
@@ -287,6 +258,22 @@ input { user-select: text; -webkit-user-select: text; }
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
+  position: relative;
+  touch-action: manipulation;
+  transition: background .12s;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.team-header:active { transform: none; }
+.team-card-white .team-header:active { background: rgba(0,0,0,.06); }
+.team-card-black .team-header:active { background: rgba(255,255,255,.08); }
+.team-header .team-edit-hint {
+  margin-left: auto;
+  font-size: 13px;
+  opacity: .45;
+  flex-shrink: 0;
 }
 
 .jersey { width: 28px; height: 28px; flex-shrink: 0; }
@@ -435,18 +422,6 @@ input { user-select: text; -webkit-user-select: text; }
   color: #1a1006 !important;
   border-color: var(--accent) !important;
 }
-
-/* Matchup pill jersey icons */
-.mu-jersey {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  flex-shrink: 0;
-  border: 1.5px solid currentColor;
-}
-.mu-jersey-white { background: #ffffff; border-color: #1a1a1a; }
-.mu-jersey-black { background: #16181d; border-color: #e8ecf3; }
 
 .picker-jersey {
   display: inline-block;
@@ -623,9 +598,6 @@ body.edit-mode .edit-only { display: inline-flex; }
 .picker-option:disabled { opacity: .35; cursor: not-allowed; }
 
 /* 편집 모드 시각 변화 */
-body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
-
-.matchup-inline-edit { display: none; }
 
 /* iPad 가로 / 데스크탑: 2열 그리드 */
 @media (min-width: 1024px) {
@@ -644,10 +616,8 @@ body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
   .whistle-section { padding: 16px 8px; }
   .whistle-section .whistle-icon { font-size: 34px; }
   .whistle-section .whistle-label { font-size: 13px; }
-  .matchup-bar { display: none; }
   .timer-display { font-size: clamp(96px, 13vw, 132px); }
-  .timer-row { margin-bottom: 12px; }
-  .matchup-inline-edit { display: inline-flex; }
+  .timer-row { margin-bottom: 10px; }
   .score-current { font-size: clamp(108px, 15vw, 160px); }
   .score-area { padding: 8px 16px 4px; }
   .team-name { font-size: 26px; }
@@ -669,9 +639,9 @@ body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
   .whistle-section { padding: 10px 6px; }
   .whistle-section .whistle-icon { font-size: 26px; }
   .whistle-section .whistle-label { font-size: 11px; }
-  .timer-section { padding: 10px 12px 12px; }
-  .matchup-bar { margin-bottom: 6px; }
+  .timer-section { padding: 8px 12px 10px; }
   .timer-row { margin-bottom: 8px; }
+  .quarter-pill { padding: 4px 10px; font-size: 13px; }
   .timer-controls { gap: 6px; }
   .timer-controls .btn { flex: 1; min-width: 0; padding: 7px 8px; font-size: 13px; }
   .timer-controls .btn.primary.big { flex: 1.2; }

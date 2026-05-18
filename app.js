@@ -538,13 +538,9 @@ function renderTimer() {
 }
 
 function renderMatchupBar() {
-  const m = currentMatch();
-  const whiteTeam = m ? findTeam(m.teamAId) : null;
-  const blackTeam = m ? findTeam(m.teamBId) : null;
-  const nameA = document.getElementById("muNameA");
-  const nameB = document.getElementById("muNameB");
-  if (nameA) nameA.textContent = whiteTeam ? whiteTeam.name : "—";
-  if (nameB) nameB.textContent = blackTeam ? blackTeam.name : "—";
+  // The standalone matchup pill is gone; team identity now lives in each
+  // card header. Kept as a no-op so other render paths that call it don't
+  // break, and so any future header summary can plug in here.
 }
 
 const JERSEY_SVG = `<svg class="jersey" viewBox="0 0 32 32" aria-hidden="true">
@@ -601,13 +597,14 @@ function buildPlayCard({ side, team, opponent, score, pairScore }) {
   card.dataset.teamId = team.id;
   card.dataset.side = side;
   card.innerHTML = `
-    <div class="team-header">
+    <button class="team-header" type="button" data-action="change-matchup" aria-label="매치업 팀 변경">
       ${JERSEY_SVG}
       <div class="team-meta">
         <div class="team-side-label">${side === "white" ? "화이트" : "블랙"}</div>
         <div class="team-name-display">${escapeHtml(team.name)}</div>
       </div>
-    </div>
+      <span class="team-edit-hint" aria-hidden="true">✎</span>
+    </button>
     <div class="score-area" data-team-id="${team.id}">
       <div class="score-current">${score}</div>
       <div class="score-foot">vs ${escapeHtml(opponent.name)} 누적 <strong>${pairScore}</strong></div>
@@ -830,11 +827,13 @@ function bindEvents() {
   });
   document.getElementById("resetTimerBtn").addEventListener("click", resetTimer);
   document.getElementById("nextQuarterBtn").addEventListener("click", nextMatch);
-  document.getElementById("matchupBtn").addEventListener("click", () => {
+  const matchupBtn = document.getElementById("matchupBtn");
+  if (matchupBtn) matchupBtn.addEventListener("click", () => {
     if (state.editMode) return;
     showMatchupModal({ mode: "replace" });
   });
-  document.getElementById("changeMatchupBtn").addEventListener("click", () => {
+  const changeMatchupBtn = document.getElementById("changeMatchupBtn");
+  if (changeMatchupBtn) changeMatchupBtn.addEventListener("click", () => {
     if (state.editMode) return;
     showMatchupModal({ mode: "replace" });
   });
@@ -961,6 +960,12 @@ function bindEvents() {
     }
 
     // Play mode
+    const headerBtn = e.target.closest('[data-action="change-matchup"]');
+    if (headerBtn) {
+      ensureAudio();
+      showMatchupModal({ mode: "replace" });
+      return;
+    }
     const scoreArea = e.target.closest(".score-area");
     if (scoreArea) {
       ensureAudio();
