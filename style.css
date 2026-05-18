@@ -176,27 +176,70 @@ input { user-select: text; -webkit-user-select: text; }
 
 .teams-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 14px;
 }
 
 .team-card {
-  background: var(--panel);
   border: 2px solid var(--border);
   border-radius: 18px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
-.team-card.resting { opacity: .55; }
+
+/* White jersey card (left side) */
+.team-card-white {
+  --jersey-fill: #fafafa;
+  --jersey-stroke: #1a1a1a;
+  --card-bg: #f5f5f5;
+  --card-bg-strong: #ffffff;
+  --card-text: #0f1115;
+  --card-text-mute: #4a5161;
+  background: var(--card-bg);
+  border-color: #1a1a1a;
+  color: var(--card-text);
+}
+.team-card-white .team-header { background: var(--card-bg-strong); border-bottom: 1px solid rgba(0,0,0,.08); }
+
+/* Black jersey card (right side) */
+.team-card-black {
+  --jersey-fill: #16181d;
+  --jersey-stroke: #e8ecf3;
+  --card-bg: #16181d;
+  --card-bg-strong: #0c0e12;
+  --card-text: #f5f6f8;
+  --card-text-mute: #a4adbf;
+  background: var(--card-bg);
+  border-color: #e8ecf3;
+  color: var(--card-text);
+}
+.team-card-black .team-header { background: var(--card-bg-strong); border-bottom: 1px solid rgba(255,255,255,.08); }
+
 .team-header {
   padding: 10px 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--panel-2);
-  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+
+.jersey { width: 28px; height: 28px; flex-shrink: 0; }
+.team-meta { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.team-side-label {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 800;
+  opacity: .65;
+}
+.team-name-display {
+  font-size: 16px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .team-color-dot {
   width: 12px; height: 12px; border-radius: 50%;
@@ -228,102 +271,133 @@ input { user-select: text; -webkit-user-select: text; }
   cursor: pointer;
   position: relative;
   transition: background .15s;
+  flex: 1;
 }
-.score-area:active { background: rgba(255,122,24,.12); }
+.team-card-white .score-area:active { background: rgba(0,0,0,.05); }
+.team-card-black .score-area:active { background: rgba(255,255,255,.06); }
 .score-area::after {
   content: "탭하여 +1";
   position: absolute;
   top: 8px; right: 12px;
   font-size: 11px;
-  color: var(--text-mute);
+  color: var(--card-text-mute);
   opacity: .7;
 }
-.score-area.resting-label {
-  cursor: default;
-  padding: 28px 16px;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-mute);
-  letter-spacing: 2px;
-}
-.score-area.resting-label::after { content: ""; }
-.score-area.resting-label:active { background: transparent; }
 .score-current {
   font-size: clamp(88px, 20vw, 156px);
   font-weight: 900;
-  color: var(--accent);
+  color: var(--card-text);
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: 1px;
 }
-.score-meta { display: none; }
+.score-foot {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--card-text-mute);
+  text-align: center;
+}
+.score-foot strong { color: var(--card-text); font-weight: 800; }
 
 .score-controls {
   order: 99;
   margin-top: auto;
-  padding: 14px 16px 14px;
+  padding: 10px 16px 12px;
   display: flex;
   gap: 8px;
   justify-content: center;
-  border-top: 1px dashed var(--border);
 }
-.score-controls .minus { min-width: 80px; }
+.team-card-white .score-controls { border-top: 1px dashed rgba(0,0,0,.12); }
+.team-card-black .score-controls { border-top: 1px dashed rgba(255,255,255,.12); }
+.score-controls .minus { min-width: 70px; }
+.team-card-white .score-controls .minus {
+  background: rgba(0,0,0,.05);
+  color: var(--card-text);
+  border-color: rgba(0,0,0,.12);
+}
+.team-card-black .score-controls .minus {
+  background: rgba(255,255,255,.05);
+  color: var(--card-text);
+  border-color: rgba(255,255,255,.12);
+}
 
-.players-area {
-  padding: 6px 12px 10px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+/* Edit-mode team list */
+.team-edit-list {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-}
-.players-area:empty { padding: 0; }
-.player-btn {
-  background: var(--panel-2);
-  color: var(--text);
+  background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
+  border-radius: 14px;
+  padding: 10px;
+}
+.team-edit-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  min-height: 48px;
-  touch-action: manipulation;
-  transition: transform .05s, background .15s;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
-.player-btn:active { transform: scale(.97); background: rgba(255,122,24,.18); }
-.player-btn .pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.player-btn .ppoints {
-  background: var(--accent);
-  color: #1a1006;
-  font-weight: 800;
-  border-radius: 999px;
-  padding: 2px 9px;
-  font-size: 12px;
-  min-width: 26px;
-  text-align: center;
-  flex-shrink: 0;
-}
-.player-btn.resting-player { cursor: default; }
-.player-btn.resting-player:active { transform: none; background: var(--panel-2); }
-
-.add-player-btn {
+.team-edit-row .team-name {
+  flex: 1;
   background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 15px;
+  font-weight: 700;
+  outline: none;
+}
+.team-edit-row .team-name:focus { border-color: var(--accent); }
+
+.empty-match {
+  grid-column: 1 / -1;
+  padding: 30px 16px;
+  text-align: center;
   color: var(--text-mute);
   border: 1px dashed var(--border);
-  border-radius: 12px;
-  padding: 10px;
-  font-size: 13px;
-  cursor: pointer;
-  min-height: 48px;
-  display: none;
-  align-items: center;
-  justify-content: center;
+  border-radius: 14px;
 }
-body.edit-mode .add-player-btn { display: flex; }
+
+/* Whistle button */
+.whistle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.whistle-btn .whistle-icon { font-size: 16px; line-height: 1; }
+.whistle-btn .whistle-label { font-size: 14px; }
+.whistle-btn.whistle-flash {
+  background: var(--accent) !important;
+  color: #1a1006 !important;
+  border-color: var(--accent) !important;
+}
+
+/* Matchup pill jersey icons */
+.mu-jersey {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  border: 1.5px solid currentColor;
+}
+.mu-jersey-white { background: #ffffff; border-color: #1a1a1a; }
+.mu-jersey-black { background: #16181d; border-color: #e8ecf3; }
+
+.picker-jersey {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+.picker-jersey-white { background: #ffffff; border: 1.5px solid #1a1a1a; }
+.picker-jersey-black { background: #16181d; border: 1.5px solid #e8ecf3; }
 
 .section-title {
   font-size: 13px;
@@ -494,18 +568,7 @@ body.edit-mode .edit-only { display: inline-flex; }
 .picker-option .po-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
 /* 편집 모드 시각 변화 */
-body.edit-mode .team-card { border-style: dashed; opacity: 1; }
-body.edit-mode .team-name { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
-body.edit-mode .player-btn { cursor: grab; }
-body.edit-mode .player-btn:active { cursor: grabbing; }
-body.edit-mode .score-area { pointer-events: none; opacity: .55; }
-body.edit-mode .score-area::after { content: "편집 모드"; }
-body.edit-mode .score-controls { opacity: .4; pointer-events: none; }
 body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
-
-.sortable-ghost { opacity: .25; }
-.sortable-chosen { transform: scale(1.05); }
-.sortable-drag { opacity: .9; box-shadow: var(--shadow); }
 
 .matchup-inline-edit { display: none; }
 
@@ -541,21 +604,28 @@ body.edit-mode .matchup-select { opacity: .5; pointer-events: none; }
 @media (max-width: 640px) {
   #app { padding: 0 8px calc(88px + env(safe-area-inset-bottom)); }
   .topbar { margin: 0 -8px 4px; padding: calc(6px + env(safe-area-inset-top)) 10px 8px; }
-  .teams-section { grid-template-columns: 1fr; gap: 8px; margin-bottom: 10px; }
+  .teams-section { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
   .timer-section { padding: 10px 12px 12px; margin-bottom: 10px; }
   .matchup-bar { margin-bottom: 6px; }
   .timer-row { margin-bottom: 8px; }
-  .timer-controls .btn { flex: 1; min-width: 0; }
+  .timer-controls { gap: 6px; }
+  .timer-controls .btn { flex: 1; min-width: 0; padding: 7px 8px; font-size: 13px; }
   .timer-controls .btn.primary.big { flex: 1.2; }
   .timer-display { letter-spacing: 1px; font-size: clamp(56px, 17vw, 100px); }
-  .score-current { font-size: clamp(72px, 20vw, 120px); }
-  .team-header { padding: 8px 12px; }
-  .team-name { font-size: 18px; }
-  .score-area { padding: 6px 12px 2px; }
-  .score-controls { padding: 8px 12px 8px; }
-  .players-area { padding: 4px 10px 8px; }
+  .score-current { font-size: clamp(56px, 16vw, 92px); }
+  .score-area { padding: 8px 8px 4px; }
+  .score-area::after { font-size: 10px; top: 4px; right: 6px; }
+  .score-foot { font-size: 11px; }
+  .team-header { padding: 8px 10px; gap: 6px; }
+  .jersey { width: 22px; height: 22px; }
+  .team-side-label { font-size: 10px; letter-spacing: 1px; }
+  .team-name-display { font-size: 13px; }
+  .score-controls { padding: 6px 8px 8px; }
+  .score-controls .minus { min-width: 50px; padding: 5px 10px; font-size: 12px; }
   .matchup-pickers { grid-template-columns: 1fr; }
   .pairings-section, .record-section { padding: 12px 14px; margin-bottom: 10px; }
+  .whistle-btn .whistle-icon { font-size: 16px; }
+  .whistle-btn .whistle-label { font-size: 13px; }
 }
 
 /* A2HS 모달 */

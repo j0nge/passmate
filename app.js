@@ -13,7 +13,7 @@ function uid(prefix = "id") {
 }
 
 function makeTeam(name, color) {
-  return { id: uid("t"), name, color, players: [] };
+  return { id: uid("t"), name, color };
 }
 
 function createDefaultState() {
@@ -46,6 +46,10 @@ function loadState() {
     parsed.matches = Array.isArray(parsed.matches) ? parsed.matches : [];
     parsed.rotation = Array.isArray(parsed.rotation) ? parsed.rotation : [];
     parsed.rotationIdx = typeof parsed.rotationIdx === "number" ? parsed.rotationIdx : 0;
+    // Drop legacy `players` array from each team — player feature removed
+    parsed.teams.forEach((t) => { delete t.players; });
+    // Strip player references from history
+    parsed.history = parsed.history.filter((h) => !h.playerId);
     return parsed;
   } catch (e) {
     return null;
@@ -66,6 +70,7 @@ const SYNC_URL = "/api/state";
 let syncEnabled = false;
 let syncPullTimer = null;
 let syncPushDebounce = null;
+let syncPushInFlight = false;
 let syncLastHash = "";
 
 function syncableFields() {
@@ -116,11 +121,16 @@ async function syncBoot() {
 
 async function syncPull() {
   if (!syncEnabled) return;
+  // Don't apply remote while we have an unsynced local change in flight —
+  // otherwise the server's stale view would clobber the user's just-made +1.
+  if (syncPushDebounce || syncPushInFlight) return;
   try {
     const r = await fetch(SYNC_URL, { cache: "no-store" });
     if (!r.ok) return;
     const data = await r.json();
     if (!data.state) return;
+    // Re-check: a local change may have happened during the network round-trip.
+    if (syncPushDebounce || syncPushInFlight) return;
     const h = hashFields(data.state);
     if (h === syncLastHash) return;
     syncLastHash = h;
@@ -133,6 +143,7 @@ function syncPush(immediate) {
   if (syncPushDebounce) { clearTimeout(syncPushDebounce); syncPushDebounce = null; }
   const doPush = async () => {
     syncPushDebounce = null;
+    syncPushInFlight = true;
     try {
       const body = syncableFields();
       syncLastHash = hashFields(body);
@@ -141,7 +152,10 @@ function syncPush(immediate) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      syncPushInFlight = false;
+    }
   };
   if (immediate) doPush();
   else syncPushDebounce = setTimeout(doPush, 250);
@@ -209,25 +223,16 @@ function currentMatchIndex() {
 
 // ====== Score ======
 
-function addScore(teamId, playerId) {
+function addScore(teamId) {
   const m = currentMatch();
-  if (!m) { showToast("팀이 부족합니다 (최소 2팀)"); return; }
-  if (m.teamAId !== teamId && m.teamBId !== teamId) {
-    showToast("이 팀은 이번 매치에 뛰지 않습니다");
-    return;
-  }
+  if (!m) { showToast("매치업을 먼저 선택하세요"); return; }
+  if (m.teamAId !== teamId && m.teamBId !== teamId) return;
   if (m.teamAId === teamId) m.scoreA += 1;
   else m.scoreB += 1;
-  if (playerId) {
-    const team = state.teams.find((t) => t.id === teamId);
-    const player = team && team.players.find((p) => p.id === playerId);
-    if (player) player.points = (player.points || 0) + 1;
-  }
   state.history.push({
     type: "score",
     matchIdx: currentMatchIndex(),
     teamId,
-    playerId: playerId || null,
     ts: Date.now(),
   });
   saveState();
@@ -259,11 +264,6 @@ function undo() {
   if (last.type === "score") {
     if (m.teamAId === last.teamId) m.scoreA = Math.max(0, m.scoreA - 1);
     else if (m.teamBId === last.teamId) m.scoreB = Math.max(0, m.scoreB - 1);
-    if (last.playerId) {
-      const team = state.teams.find((t) => t.id === last.teamId);
-      const player = team && team.players.find((p) => p.id === last.playerId);
-      if (player) player.points = Math.max(0, (player.points || 0) - 1);
-    }
   } else if (last.type === "subtract") {
     if (m.teamAId === last.teamId) m.scoreA += 1;
     else if (m.teamBId === last.teamId) m.scoreB += 1;
@@ -290,36 +290,51 @@ function pairingTotal(teamAId, teamBId) {
 // ====== Match flow ======
 
 function nextMatch() {
-  if (state.rotation.length === 0) {
-    showToast("팀이 부족합니다 (최소 2팀)");
+  if (state.teams.length < 2) {
+    showToast("팀이 2개 이상 필요합니다");
     return;
   }
-  state.rotationIdx = (state.rotationIdx + 1) % state.rotation.length;
-  const next = state.rotation[state.rotationIdx];
-  state.matches.push({ teamAId: next.teamAId, teamBId: next.teamBId, scoreA: 0, scoreB: 0 });
+  // User explicitly picks white/black for every new quarter.
+  showMatchupModal({ mode: "next" });
+}
+
+function commitNewMatch(whiteId, blackId) {
+  if (whiteId === blackId) return;
+  state.matches.push({
+    teamAId: whiteId, // teamA = white-jersey team this quarter
+    teamBId: blackId, // teamB = black-jersey team this quarter
+    scoreA: 0,
+    scoreB: 0,
+  });
   state.timerSecondsLeft = state.quarterDurationSeconds;
   state.timerRunning = false;
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
+  const idx = state.rotation.findIndex(
+    (p) =>
+      (p.teamAId === whiteId && p.teamBId === blackId) ||
+      (p.teamAId === blackId && p.teamBId === whiteId)
+  );
+  if (idx !== -1) state.rotationIdx = idx;
   saveState();
   renderAll();
   showToast(`Q${state.matches.length} 매치업 준비`);
 }
 
-function setCurrentMatchTeams(teamAId, teamBId) {
-  if (teamAId === teamBId) return;
+function setCurrentMatchTeams(whiteId, blackId) {
+  if (whiteId === blackId) return;
   const m = currentMatch();
   if (!m) return;
-  m.teamAId = teamAId;
-  m.teamBId = teamBId;
+  m.teamAId = whiteId;
+  m.teamBId = blackId;
   m.scoreA = 0;
   m.scoreB = 0;
   // history에서 이 매치 관련 점수 항목들도 정리(점수 0이라 의미 X)
   state.history = state.history.filter((h) => h.matchIdx !== currentMatchIndex());
   const idx = state.rotation.findIndex(
     (p) =>
-      (p.teamAId === teamAId && p.teamBId === teamBId) ||
-      (p.teamAId === teamBId && p.teamBId === teamAId)
+      (p.teamAId === whiteId && p.teamBId === blackId) ||
+      (p.teamAId === blackId && p.teamBId === whiteId)
   );
   if (idx !== -1) state.rotationIdx = idx;
   saveState();
@@ -334,7 +349,6 @@ function resetAll() {
   state.rotationIdx = 0;
   state.timerSecondsLeft = state.quarterDurationSeconds;
   state.timerRunning = false;
-  state.teams.forEach((t) => t.players.forEach((p) => (p.points = 0)));
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
   ensureRotation();
@@ -449,6 +463,53 @@ function playAlarm() {
   } catch (e) {}
 }
 
+// Synthesize a "pea whistle" referee whistle: high-pitched square with
+// fast vibrato for the characteristic warble, short sharp envelope.
+function playWhistle() {
+  try {
+    ensureAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const dur = 0.5;
+
+    // Main tone — square wave at ~3.1kHz
+    const osc = audioCtx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(3100, now);
+
+    // Vibrato LFO — modulates the main oscillator's frequency
+    const lfo = audioCtx.createOscillator();
+    lfo.type = "sine";
+    lfo.frequency.value = 24; // warble rate
+    const lfoGain = audioCtx.createGain();
+    lfoGain.gain.value = 140; // warble depth in Hz
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+
+    // Loud, fast-attack envelope
+    const env = audioCtx.createGain();
+    env.gain.setValueAtTime(0, now);
+    env.gain.linearRampToValueAtTime(0.4, now + 0.015);
+    env.gain.setValueAtTime(0.4, now + dur - 0.05);
+    env.gain.linearRampToValueAtTime(0, now + dur);
+
+    // Bandpass to soften the hard edges of square wave
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 3100;
+    bp.Q.value = 4;
+
+    osc.connect(bp);
+    bp.connect(env);
+    env.connect(audioCtx.destination);
+
+    lfo.start(now);
+    osc.start(now);
+    lfo.stop(now + dur + 0.05);
+    osc.stop(now + dur + 0.05);
+  } catch (e) {}
+}
+
 // ====== Render ======
 
 function fmtTime(s) {
@@ -474,119 +535,94 @@ function renderTimer() {
 
 function renderMatchupBar() {
   const m = currentMatch();
-  const teamA = m ? findTeam(m.teamAId) : null;
-  const teamB = m ? findTeam(m.teamBId) : null;
-  document.getElementById("muNameA").textContent = teamA ? teamA.name : "—";
-  document.getElementById("muNameB").textContent = teamB ? teamB.name : "—";
-  document.getElementById("muDotA").style.background = teamA ? teamA.color : "transparent";
-  document.getElementById("muDotB").style.background = teamB ? teamB.color : "transparent";
+  const whiteTeam = m ? findTeam(m.teamAId) : null;
+  const blackTeam = m ? findTeam(m.teamBId) : null;
+  const nameA = document.getElementById("muNameA");
+  const nameB = document.getElementById("muNameB");
+  if (nameA) nameA.textContent = whiteTeam ? whiteTeam.name : "—";
+  if (nameB) nameB.textContent = blackTeam ? blackTeam.name : "—";
 }
+
+const JERSEY_SVG = `<svg class="jersey" viewBox="0 0 32 32" aria-hidden="true">
+  <path d="M11 4 L4 7.5 L6.5 14 L10 12.5 V27 H22 V12.5 L25.5 14 L28 7.5 L21 4 L19 5.5 C18.2 6.3 17.2 6.7 16 6.7 C14.8 6.7 13.8 6.3 13 5.5 L11 4 Z"
+    fill="var(--jersey-fill)" stroke="var(--jersey-stroke)" stroke-width="1.4" stroke-linejoin="round"/>
+</svg>`;
 
 function renderTeams() {
   const root = document.getElementById("teamsSection");
   root.innerHTML = "";
+
+  if (state.editMode) {
+    renderEditModeTeams(root);
+    document.body.classList.add("edit-mode");
+    return;
+  }
+  document.body.classList.remove("edit-mode");
+
   const m = currentMatch();
+  if (!m) {
+    root.innerHTML = `<div class="empty-match">매치업이 없습니다 — '다음 쿼터'로 시작하세요</div>`;
+    return;
+  }
+  const whiteTeam = findTeam(m.teamAId);
+  const blackTeam = findTeam(m.teamBId);
+  if (!whiteTeam || !blackTeam) {
+    // Match references a deleted team — drop it and recover
+    state.matches.pop();
+    ensureCurrentMatch();
+    renderAll();
+    return;
+  }
+  const tot = pairingTotal(whiteTeam.id, blackTeam.id);
+  root.appendChild(buildPlayCard({
+    side: "white", team: whiteTeam, opponent: blackTeam,
+    score: m.scoreA, pairScore: tot.a,
+  }));
+  root.appendChild(buildPlayCard({
+    side: "black", team: blackTeam, opponent: whiteTeam,
+    score: m.scoreB, pairScore: tot.b,
+  }));
+}
 
-  state.teams.forEach((team) => {
-    const isPlaying = m && (m.teamAId === team.id || m.teamBId === team.id);
-    if (!isPlaying && !state.editMode) return;
-
-    const card = document.createElement("div");
-    card.className = "team-card";
-    if (!isPlaying) card.classList.add("resting");
-    card.dataset.teamId = team.id;
-    card.style.borderColor = team.color;
-
-    const myScore = m && isPlaying ? (m.teamAId === team.id ? m.scoreA : m.scoreB) : 0;
-    const oppId = m && isPlaying ? (m.teamAId === team.id ? m.teamBId : m.teamAId) : null;
-    const opp = oppId ? findTeam(oppId) : null;
-    const pairTotal = opp ? pairingTotal(team.id, opp.id) : null;
-
-    const headerHtml = `
-      <div class="team-header">
-        <span class="team-color-dot" style="background:${team.color}"></span>
-        <input class="team-name" value="${escapeHtml(team.name)}" ${state.editMode ? "" : "readonly"}>
-        ${state.editMode ? `<button class="btn small ghost danger del-team">삭제</button>` : ""}
+function buildPlayCard({ side, team, opponent, score, pairScore }) {
+  const card = document.createElement("div");
+  card.className = `team-card team-card-${side}`;
+  card.dataset.teamId = team.id;
+  card.dataset.side = side;
+  card.innerHTML = `
+    <div class="team-header">
+      ${JERSEY_SVG}
+      <div class="team-meta">
+        <div class="team-side-label">${side === "white" ? "화이트" : "블랙"}</div>
+        <div class="team-name-display">${escapeHtml(team.name)}</div>
       </div>
+    </div>
+    <div class="score-area" data-team-id="${team.id}">
+      <div class="score-current">${score}</div>
+      <div class="score-foot">vs ${escapeHtml(opponent.name)} 누적 <strong>${pairScore}</strong></div>
+    </div>
+    <div class="score-controls">
+      <button class="btn small minus" data-team-id="${team.id}">−1</button>
+    </div>
+  `;
+  return card;
+}
+
+function renderEditModeTeams(root) {
+  const list = document.createElement("div");
+  list.className = "team-edit-list";
+  state.teams.forEach((team) => {
+    const row = document.createElement("div");
+    row.className = "team-edit-row";
+    row.dataset.teamId = team.id;
+    row.innerHTML = `
+      <span class="team-color-dot" style="background:${team.color}"></span>
+      <input class="team-name" value="${escapeHtml(team.name)}" />
+      <button class="btn small ghost danger del-team" type="button">삭제</button>
     `;
-
-    const scoreHtml = isPlaying
-      ? `
-        <div class="score-area" data-team-id="${team.id}">
-          <div class="score-current" style="color:${team.color}">${myScore}</div>
-          <div class="score-meta">
-            <span>이번 매치</span>
-            ${pairTotal ? `<span class="total">vs ${escapeHtml(opp.name)} 누적 ${pairTotal.a}점</span>` : ""}
-          </div>
-        </div>
-        <div class="score-controls">
-          <button class="btn small minus" data-team-id="${team.id}">−1</button>
-        </div>
-      `
-      : `<div class="score-area resting-label">쉬는 중</div>`;
-
-    card.innerHTML = headerHtml + scoreHtml + `<div class="players-area" data-team-id="${team.id}"></div>`;
-
-    const playersArea = card.querySelector(".players-area");
-    team.players.forEach((p) => {
-      const btn = document.createElement("button");
-      btn.className = "player-btn" + (isPlaying ? "" : " resting-player");
-      btn.dataset.playerId = p.id;
-      btn.dataset.teamId = team.id;
-      btn.innerHTML = `<span class="pname">${escapeHtml(p.name)}</span><span class="ppoints">${p.points || 0}</span>`;
-      playersArea.appendChild(btn);
-    });
-
-    const addBtn = document.createElement("button");
-    addBtn.className = "add-player-btn";
-    addBtn.textContent = "+ 선수 추가";
-    addBtn.dataset.teamId = team.id;
-    addBtn.dataset.action = "add-player";
-    playersArea.appendChild(addBtn);
-
-    root.appendChild(card);
+    list.appendChild(row);
   });
-
-  document.body.classList.toggle("edit-mode", state.editMode);
-  setupSortable();
-}
-
-function setupSortable() {
-  if (!window.Sortable) return;
-  document.querySelectorAll(".players-area").forEach((area) => {
-    if (area._sortable) area._sortable.destroy();
-    area._sortable = Sortable.create(area, {
-      group: "players",
-      animation: 150,
-      disabled: !state.editMode,
-      filter: ".add-player-btn",
-      preventOnFilter: false,
-      delay: 100,
-      delayOnTouchOnly: true,
-      onEnd: (evt) => {
-        const playerId = evt.item.dataset.playerId;
-        const fromTeamId = evt.from.dataset.teamId;
-        const toTeamId = evt.to.dataset.teamId;
-        if (!playerId || fromTeamId === toTeamId) {
-          renderTeams();
-          return;
-        }
-        movePlayer(playerId, fromTeamId, toTeamId);
-      },
-    });
-  });
-}
-
-function movePlayer(playerId, fromTeamId, toTeamId) {
-  const fromTeam = findTeam(fromTeamId);
-  const toTeam = findTeam(toTeamId);
-  if (!fromTeam || !toTeam) return;
-  const idx = fromTeam.players.findIndex((p) => p.id === playerId);
-  if (idx === -1) return;
-  const [player] = fromTeam.players.splice(idx, 1);
-  toTeam.players.push(player);
-  saveState();
-  renderTeams();
+  root.appendChild(list);
 }
 
 function renderPairings() {
@@ -720,11 +756,26 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
 }
 
-function showMatchupModal() {
+function showMatchupModal({ mode = "replace" } = {}) {
   if (state.teams.length < 2) { showToast("팀이 2개 이상 필요합니다"); return; }
   const m = currentMatch();
-  let selA = m ? m.teamAId : state.teams[0].id;
-  let selB = m ? m.teamBId : state.teams[1].id;
+  let selWhite, selBlack;
+  if (mode === "next" && state.rotation.length > 0) {
+    // Suggest the next pair in the rotation as a default, but the user picks.
+    const nextRot = state.rotation[(state.rotationIdx + 1) % state.rotation.length];
+    selWhite = nextRot.teamAId;
+    selBlack = nextRot.teamBId;
+  } else {
+    selWhite = m ? m.teamAId : state.teams[0].id;
+    selBlack = m ? m.teamBId : state.teams[1].id;
+  }
+
+  const titleEl = document.getElementById("matchupModalTitle");
+  if (titleEl) {
+    titleEl.textContent = mode === "next"
+      ? `Q${state.matches.length + 1} 매치업 — 옷 색깔 선택`
+      : "이번 쿼터 매치업 변경";
+  }
 
   const renderPickers = () => {
     const renderColumn = (containerId, selected, otherSelected, onPick) => {
@@ -739,8 +790,8 @@ function showMatchupModal() {
         root.appendChild(btn);
       });
     };
-    renderColumn("pickerA", selA, selB, (id) => { selA = id; renderPickers(); });
-    renderColumn("pickerB", selB, selA, (id) => { selB = id; renderPickers(); });
+    renderColumn("pickerA", selWhite, selBlack, (id) => { selWhite = id; renderPickers(); });
+    renderColumn("pickerB", selBlack, selWhite, (id) => { selBlack = id; renderPickers(); });
   };
   renderPickers();
 
@@ -754,9 +805,10 @@ function showMatchupModal() {
     cancel.removeEventListener("click", cleanup);
   };
   const okHandler = () => {
-    if (selA === selB) { showToast("서로 다른 두 팀을 선택하세요"); return; }
+    if (selWhite === selBlack) { showToast("서로 다른 두 팀을 선택하세요"); return; }
     cleanup();
-    setCurrentMatchTeams(selA, selB);
+    if (mode === "next") commitNewMatch(selWhite, selBlack);
+    else setCurrentMatchTeams(selWhite, selBlack);
   };
   ok.addEventListener("click", okHandler);
   cancel.addEventListener("click", cleanup);
@@ -772,12 +824,22 @@ function bindEvents() {
   document.getElementById("nextQuarterBtn").addEventListener("click", nextMatch);
   document.getElementById("matchupBtn").addEventListener("click", () => {
     if (state.editMode) return;
-    showMatchupModal();
+    showMatchupModal({ mode: "replace" });
   });
   document.getElementById("changeMatchupBtn").addEventListener("click", () => {
     if (state.editMode) return;
-    showMatchupModal();
+    showMatchupModal({ mode: "replace" });
   });
+
+  const whistleBtn = document.getElementById("whistleBtn");
+  if (whistleBtn) {
+    whistleBtn.addEventListener("click", () => {
+      ensureAudio();
+      playWhistle();
+      whistleBtn.classList.add("whistle-flash");
+      setTimeout(() => whistleBtn.classList.remove("whistle-flash"), 250);
+    });
+  }
 
   document.getElementById("editTimerBtn").addEventListener("click", () => {
     document.getElementById("minutesInput").value = Math.floor(state.quarterDurationSeconds / 60);
@@ -840,7 +902,7 @@ function bindEvents() {
   document.getElementById("resetAllBtn").addEventListener("click", () => {
     showConfirm(
       "전체 초기화",
-      "모든 매치 점수, 페어링 누적, 선수 득점이 0으로 리셋됩니다. 팀과 선수 명단은 유지됩니다. 진행할까요?",
+      "모든 매치 점수와 페어링 누적이 0으로 리셋됩니다. 팀 명단은 유지됩니다. 진행할까요?",
       () => { resetAll(); showToast("초기화 완료"); }
     );
   });
@@ -860,14 +922,30 @@ function bindEvents() {
   const teamsSection = document.getElementById("teamsSection");
 
   teamsSection.addEventListener("click", (e) => {
-    const playerBtn = e.target.closest(".player-btn");
-    if (playerBtn && !state.editMode && !playerBtn.classList.contains("resting-player")) {
-      ensureAudio();
-      addScore(playerBtn.dataset.teamId, playerBtn.dataset.playerId);
+    if (state.editMode) {
+      // Only handle team delete in edit mode; score taps are disabled.
+      const delTeam = e.target.closest(".del-team");
+      if (delTeam) {
+        const row = delTeam.closest("[data-team-id]");
+        const teamId = row.dataset.teamId;
+        const team = findTeam(teamId);
+        if (state.teams.length <= 2) { showToast("최소 2팀이 필요합니다"); return; }
+        showConfirm("팀 삭제", `'${team.name}'을(를) 삭제할까요? 이 팀이 포함된 매치 기록이 함께 사라집니다.`, () => {
+          state.teams = state.teams.filter((t) => t.id !== teamId);
+          state.matches = state.matches.filter((m) => m.teamAId !== teamId && m.teamBId !== teamId);
+          state.history = state.history.filter((h) => h.teamId !== teamId);
+          ensureRotation();
+          ensureCurrentMatch();
+          saveState();
+          renderAll();
+        });
+      }
       return;
     }
+
+    // Play mode
     const scoreArea = e.target.closest(".score-area");
-    if (scoreArea && !state.editMode && !scoreArea.classList.contains("resting-label")) {
+    if (scoreArea) {
       ensureAudio();
       addScore(scoreArea.dataset.teamId);
       return;
@@ -877,41 +955,12 @@ function bindEvents() {
       manualSubtract(minus.dataset.teamId);
       return;
     }
-    const delTeam = e.target.closest(".del-team");
-    if (delTeam) {
-      const card = delTeam.closest(".team-card");
-      const teamId = card.dataset.teamId;
-      const team = findTeam(teamId);
-      if (state.teams.length <= 2) { showToast("최소 2팀이 필요합니다"); return; }
-      showConfirm("팀 삭제", `'${team.name}'을(를) 삭제할까요? 이 팀이 포함된 매치 기록이 함께 사라집니다.`, () => {
-        state.teams = state.teams.filter((t) => t.id !== teamId);
-        state.matches = state.matches.filter((m) => m.teamAId !== teamId && m.teamBId !== teamId);
-        state.history = state.history.filter((h) => h.teamId !== teamId);
-        ensureRotation();
-        ensureCurrentMatch();
-        saveState();
-        renderAll();
-      });
-      return;
-    }
-    const addPlayer = e.target.closest('[data-action="add-player"]');
-    if (addPlayer) {
-      const teamId = addPlayer.dataset.teamId;
-      const team = findTeam(teamId);
-      showPrompt(`'${team.name}'에 선수 추가`, "", (name) => {
-        if (!name) return;
-        team.players.push({ id: uid("p"), name, points: 0 });
-        saveState();
-        renderTeams();
-      });
-      return;
-    }
   });
 
   teamsSection.addEventListener("change", (e) => {
     if (e.target.classList.contains("team-name")) {
-      const card = e.target.closest(".team-card");
-      const team = findTeam(card.dataset.teamId);
+      const row = e.target.closest("[data-team-id]");
+      const team = findTeam(row.dataset.teamId);
       if (team) {
         const v = e.target.value.trim();
         if (v) team.name = v; else e.target.value = team.name;
@@ -921,32 +970,6 @@ function bindEvents() {
       }
     }
   });
-
-  let lastTap = { id: null, t: 0 };
-  teamsSection.addEventListener("click", (e) => {
-    if (!state.editMode) return;
-    const playerBtn = e.target.closest(".player-btn");
-    if (!playerBtn) return;
-    const id = playerBtn.dataset.playerId;
-    const now = Date.now();
-    if (lastTap.id === id && now - lastTap.t < 400) {
-      lastTap = { id: null, t: 0 };
-      const teamId = playerBtn.dataset.teamId;
-      const team = findTeam(teamId);
-      const player = team.players.find((p) => p.id === id);
-      showPrompt("선수 이름 (빈 칸으로 두면 삭제)", player.name, (newName) => {
-        if (newName === "") {
-          team.players = team.players.filter((p) => p.id !== id);
-        } else {
-          player.name = newName;
-        }
-        saveState();
-        renderTeams();
-      });
-    } else {
-      lastTap = { id, t: now };
-    }
-  }, true);
 
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden && state.timerRunning) {

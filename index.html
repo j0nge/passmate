@@ -32,9 +32,15 @@
       <div class="matchup-bar">
         <span class="quarter-pill"><span class="quarter-pill-label">Q</span><span id="quarterValue">1</span></span>
         <button id="matchupBtn" class="matchup-select" type="button">
-          <span class="mu-team mu-a"><span class="mu-dot" id="muDotA"></span><span id="muNameA">A팀</span></span>
+          <span class="mu-team mu-white-side">
+            <span class="mu-jersey mu-jersey-white" aria-hidden="true"></span>
+            <span id="muNameA">화이트</span>
+          </span>
           <span class="mu-vs">vs</span>
-          <span class="mu-team mu-b"><span class="mu-dot" id="muDotB"></span><span id="muNameB">B팀</span></span>
+          <span class="mu-team mu-black-side">
+            <span class="mu-jersey mu-jersey-black" aria-hidden="true"></span>
+            <span id="muNameB">블랙</span>
+          </span>
           <span class="mu-edit">✎</span>
         </button>
       </div>
@@ -46,6 +52,7 @@
         <button id="startStopBtn" class="btn primary big">시작</button>
         <button id="resetTimerBtn" class="btn ghost">리셋</button>
         <button id="nextQuarterBtn" class="btn">다음 쿼터 →</button>
+        <button id="whistleBtn" class="btn ghost whistle-btn" type="button" aria-label="휘슬"><span class="whistle-icon" aria-hidden="true">📣</span><span class="whistle-label">휘슬</span></button>
         <button id="changeMatchupBtn" class="btn ghost matchup-inline-edit">✎ 매치업</button>
       </div>
     </section>
@@ -88,15 +95,15 @@
 
   <div id="matchupModal" class="modal hidden">
     <div class="modal-content">
-      <h2>이번 쿼터 매치업</h2>
-      <p class="muted">두 팀을 선택하세요</p>
+      <h2 id="matchupModalTitle">이번 쿼터 매치업</h2>
+      <p class="muted">각 색깔 옷을 입는 팀을 선택하세요</p>
       <div class="matchup-pickers">
-        <div class="picker">
-          <div class="picker-label">팀 1</div>
+        <div class="picker picker-white">
+          <div class="picker-label"><span class="picker-jersey picker-jersey-white" aria-hidden="true"></span>화이트</div>
           <div class="picker-options" id="pickerA"></div>
         </div>
-        <div class="picker">
-          <div class="picker-label">팀 2</div>
+        <div class="picker picker-black">
+          <div class="picker-label"><span class="picker-jersey picker-jersey-black" aria-hidden="true"></span>블랙</div>
           <div class="picker-options" id="pickerB"></div>
         </div>
       </div>
@@ -160,7 +167,6 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
