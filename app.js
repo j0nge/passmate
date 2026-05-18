@@ -603,7 +603,10 @@ function buildPlayCard({ side, team, opponent, score, pairScore }) {
         <div class="team-side-label">${side === "white" ? "화이트" : "블랙"}</div>
         <div class="team-name-display">${escapeHtml(team.name)}</div>
       </div>
-      <span class="team-edit-hint" aria-hidden="true">✎</span>
+      <svg class="team-edit-hint" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 17.5 V21 H6.5 L17 10.5 L13.5 7 L3 17.5 Z" fill="var(--jersey-fill)" stroke="var(--jersey-stroke)" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M14.5 5.5 L17 3 L21 7 L18.5 9.5 L14.5 5.5 Z" fill="var(--jersey-fill)" stroke="var(--jersey-stroke)" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>
     </button>
     <div class="score-area" data-team-id="${team.id}">
       <div class="score-current">${score}</div>

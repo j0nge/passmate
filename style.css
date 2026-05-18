@@ -277,9 +277,10 @@ input { user-select: text; -webkit-user-select: text; }
 .team-header:active { background: var(--card-hover); }
 .team-header .team-edit-hint {
   margin-left: auto;
-  font-size: 13px;
-  opacity: .45;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
+  opacity: .55;
 }
 
 .jersey { width: 28px; height: 28px; flex-shrink: 0; }
@@ -655,6 +656,7 @@ body.edit-mode .edit-only { display: inline-flex; }
   .score-foot { font-size: 11px; }
   .team-header { padding: 8px 10px; gap: 6px; }
   .jersey { width: 22px; height: 22px; }
+  .team-header .team-edit-hint { width: 22px; height: 22px; }
   .team-side-label { font-size: 10px; letter-spacing: 1px; }
   .team-name-display { font-size: 13px; }
   .score-controls { padding: 6px 8px 8px; }
