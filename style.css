@@ -228,32 +228,40 @@ input { user-select: text; -webkit-user-select: text; }
 /* White jersey card (left side) */
 .team-card-white {
   --jersey-fill: #fafafa;
-  --jersey-stroke: #1a1a1a;
-  --card-bg: #f5f5f5;
-  --card-bg-strong: #ffffff;
+  --jersey-stroke: #0f1115;
+  --card-bg: #ffffff;
   --card-text: #0f1115;
-  --card-text-mute: #4a5161;
+  --card-divider: rgba(0,0,0,.10);
+  --card-hover: rgba(0,0,0,.05);
   background: var(--card-bg);
-  border-color: #1a1a1a;
+  border-color: #0f1115;
   color: var(--card-text);
 }
-.team-card-white .team-header { background: var(--card-bg-strong); border-bottom: 1px solid rgba(0,0,0,.08); }
 
 /* Black jersey card (right side) */
 .team-card-black {
   --jersey-fill: #16181d;
-  --jersey-stroke: #e8ecf3;
+  --jersey-stroke: #f5f6f8;
   --card-bg: #16181d;
-  --card-bg-strong: #0c0e12;
   --card-text: #f5f6f8;
-  --card-text-mute: #a4adbf;
+  --card-divider: rgba(255,255,255,.10);
+  --card-hover: rgba(255,255,255,.08);
   background: var(--card-bg);
-  border-color: #e8ecf3;
+  border-color: #f5f6f8;
   color: var(--card-text);
 }
-.team-card-black .team-header { background: var(--card-bg-strong); border-bottom: 1px solid rgba(255,255,255,.08); }
 
 .team-header {
+  /* button reset — was inheriting UA default border/outline that made the
+     header look inset against the card's rounded edge */
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  outline: none;
+  font: inherit;
+  background: transparent;
+  color: inherit;
+
   padding: 10px 12px;
   display: flex;
   align-items: center;
@@ -264,11 +272,9 @@ input { user-select: text; -webkit-user-select: text; }
   transition: background .12s;
   width: 100%;
   text-align: left;
-  font-family: inherit;
+  border-bottom: 1px solid var(--card-divider);
 }
-.team-header:active { transform: none; }
-.team-card-white .team-header:active { background: rgba(0,0,0,.06); }
-.team-card-black .team-header:active { background: rgba(255,255,255,.08); }
+.team-header:active { background: var(--card-hover); }
 .team-header .team-edit-hint {
   margin-left: auto;
   font-size: 13px;
@@ -283,7 +289,8 @@ input { user-select: text; -webkit-user-select: text; }
   letter-spacing: 1.5px;
   text-transform: uppercase;
   font-weight: 800;
-  opacity: .65;
+  color: var(--card-text);
+  opacity: .55;
 }
 .team-name-display {
   font-size: 16px;
@@ -291,6 +298,7 @@ input { user-select: text; -webkit-user-select: text; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--card-text);
 }
 .team-color-dot { display: none; }
 .team-name {
@@ -319,16 +327,16 @@ input { user-select: text; -webkit-user-select: text; }
   position: relative;
   transition: background .15s;
   flex: 1;
+  color: var(--card-text);
 }
-.team-card-white .score-area:active { background: rgba(0,0,0,.05); }
-.team-card-black .score-area:active { background: rgba(255,255,255,.06); }
+.score-area:active { background: var(--card-hover); }
 .score-area::after {
   content: "탭하여 +1";
   position: absolute;
   top: 8px; right: 12px;
   font-size: 11px;
-  color: var(--card-text-mute);
-  opacity: .7;
+  color: var(--card-text);
+  opacity: .5;
 }
 .score-current {
   font-size: clamp(88px, 20vw, 156px);
@@ -341,10 +349,11 @@ input { user-select: text; -webkit-user-select: text; }
 .score-foot {
   margin-top: 6px;
   font-size: 12px;
-  color: var(--card-text-mute);
+  color: var(--card-text);
+  opacity: .7;
   text-align: center;
 }
-.score-foot strong { color: var(--card-text); font-weight: 800; }
+.score-foot strong { font-weight: 800; opacity: 1; }
 
 .score-controls {
   order: 99;
@@ -354,18 +363,12 @@ input { user-select: text; -webkit-user-select: text; }
   gap: 8px;
   justify-content: center;
 }
-.team-card-white .score-controls { border-top: 1px dashed rgba(0,0,0,.12); }
-.team-card-black .score-controls { border-top: 1px dashed rgba(255,255,255,.12); }
-.score-controls .minus { min-width: 70px; }
-.team-card-white .score-controls .minus {
-  background: rgba(0,0,0,.05);
+.score-controls { border-top: 1px dashed var(--card-divider); }
+.score-controls .minus {
+  min-width: 70px;
+  background: var(--card-hover);
   color: var(--card-text);
-  border-color: rgba(0,0,0,.12);
-}
-.team-card-black .score-controls .minus {
-  background: rgba(255,255,255,.05);
-  color: var(--card-text);
-  border-color: rgba(255,255,255,.12);
+  border-color: var(--card-divider);
 }
 
 /* Edit-mode team list */
