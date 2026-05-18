@@ -28,36 +28,44 @@
       </div>
     </header>
 
-    <section class="timer-section">
-      <div class="matchup-bar">
-        <span class="quarter-pill"><span class="quarter-pill-label">Q</span><span id="quarterValue">1</span></span>
-        <button id="matchupBtn" class="matchup-select" type="button">
-          <span class="mu-team mu-white-side">
-            <span class="mu-jersey mu-jersey-white" aria-hidden="true"></span>
-            <span id="muNameA">화이트</span>
-          </span>
-          <span class="mu-vs">vs</span>
-          <span class="mu-team mu-black-side">
-            <span class="mu-jersey mu-jersey-black" aria-hidden="true"></span>
-            <span id="muNameB">블랙</span>
-          </span>
-          <span class="mu-edit">✎</span>
-        </button>
-      </div>
-      <div class="timer-row">
-        <div id="timerDisplay" class="timer-display">08:00</div>
-        <button id="editTimerBtn" class="btn small ghost timer-config" aria-label="시간 설정">⚙️</button>
-      </div>
-      <div class="timer-controls">
-        <button id="startStopBtn" class="btn primary big">시작</button>
-        <button id="resetTimerBtn" class="btn ghost">리셋</button>
-        <button id="nextQuarterBtn" class="btn">다음 쿼터 →</button>
-        <button id="whistleBtn" class="btn ghost whistle-btn" type="button" aria-label="휘슬"><span class="whistle-icon" aria-hidden="true">📣</span><span class="whistle-label">휘슬</span></button>
-        <button id="changeMatchupBtn" class="btn ghost matchup-inline-edit">✎ 매치업</button>
-      </div>
-    </section>
+    <div class="game-row">
+      <section class="timer-section">
+        <div class="matchup-bar">
+          <span class="quarter-pill"><span class="quarter-pill-label">Q</span><span id="quarterValue">1</span></span>
+          <button id="matchupBtn" class="matchup-select" type="button">
+            <span class="mu-team mu-white-side">
+              <span class="mu-jersey mu-jersey-white" aria-hidden="true"></span>
+              <span id="muNameA">화이트</span>
+            </span>
+            <span class="mu-vs">vs</span>
+            <span class="mu-team mu-black-side">
+              <span class="mu-jersey mu-jersey-black" aria-hidden="true"></span>
+              <span id="muNameB">블랙</span>
+            </span>
+            <span class="mu-edit">✎</span>
+          </button>
+        </div>
+        <div class="timer-row">
+          <div id="timerDisplay" class="timer-display">08:00</div>
+          <button id="editTimerBtn" class="btn small ghost timer-config" aria-label="시간 설정">⚙️</button>
+        </div>
+        <div class="timer-controls">
+          <button id="startStopBtn" class="btn primary big">시작</button>
+          <button id="resetTimerBtn" class="btn ghost">리셋</button>
+          <button id="nextQuarterBtn" class="btn">다음 쿼터 →</button>
+          <button id="changeMatchupBtn" class="btn ghost matchup-inline-edit">✎ 매치업</button>
+        </div>
+      </section>
+      <button id="whistleBtn" class="whistle-section" type="button" aria-label="휘슬">
+        <span class="whistle-icon" aria-hidden="true">📣</span>
+        <span class="whistle-label">휘슬</span>
+      </button>
+    </div>
 
-    <section id="teamsSection" class="teams-section"></section>
+    <div class="teams-wrap">
+      <section id="teamsSection" class="teams-section"></section>
+      <button id="swapSidesBtn" class="swap-btn" type="button" aria-label="화이트/블랙 좌우 바꾸기">⇄</button>
+    </div>
 
     <section class="pairings-section">
       <h2 class="section-title">매치업 누적</h2>

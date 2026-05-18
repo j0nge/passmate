@@ -31,6 +31,7 @@ function createDefaultState() {
     timerRunning: false,
     history: [],
     editMode: false,
+    sideSwapped: false,
   };
 }
 
@@ -46,6 +47,7 @@ function loadState() {
     parsed.matches = Array.isArray(parsed.matches) ? parsed.matches : [];
     parsed.rotation = Array.isArray(parsed.rotation) ? parsed.rotation : [];
     parsed.rotationIdx = typeof parsed.rotationIdx === "number" ? parsed.rotationIdx : 0;
+    parsed.sideSwapped = !!parsed.sideSwapped;
     // Drop legacy `players` array from each team — player feature removed
     parsed.teams.forEach((t) => { delete t.players; });
     // Strip player references from history
@@ -81,6 +83,7 @@ function syncableFields() {
     rotationIdx: state.rotationIdx,
     history: state.history,
     quarterDurationSeconds: state.quarterDurationSeconds,
+    sideSwapped: state.sideSwapped,
   };
 }
 
@@ -169,6 +172,7 @@ function applyRemoteState(remote) {
   state.rotationIdx = typeof remote.rotationIdx === "number" ? remote.rotationIdx : state.rotationIdx;
   state.history = Array.isArray(remote.history) ? remote.history : state.history;
   state.quarterDurationSeconds = typeof remote.quarterDurationSeconds === "number" ? remote.quarterDurationSeconds : state.quarterDurationSeconds;
+  if (typeof remote.sideSwapped === "boolean") state.sideSwapped = remote.sideSwapped;
   if (state.matches.length !== prevMatchCount) {
     state.timerRunning = false;
     state.timerSecondsLeft = state.quarterDurationSeconds;
@@ -574,14 +578,21 @@ function renderTeams() {
     return;
   }
   const tot = pairingTotal(whiteTeam.id, blackTeam.id);
-  root.appendChild(buildPlayCard({
+  const whiteCard = buildPlayCard({
     side: "white", team: whiteTeam, opponent: blackTeam,
     score: m.scoreA, pairScore: tot.a,
-  }));
-  root.appendChild(buildPlayCard({
+  });
+  const blackCard = buildPlayCard({
     side: "black", team: blackTeam, opponent: whiteTeam,
     score: m.scoreB, pairScore: tot.b,
-  }));
+  });
+  if (state.sideSwapped) {
+    root.appendChild(blackCard);
+    root.appendChild(whiteCard);
+  } else {
+    root.appendChild(whiteCard);
+    root.appendChild(blackCard);
+  }
 }
 
 function buildPlayCard({ side, team, opponent, score, pairScore }) {
@@ -616,7 +627,6 @@ function renderEditModeTeams(root) {
     row.className = "team-edit-row";
     row.dataset.teamId = team.id;
     row.innerHTML = `
-      <span class="team-color-dot" style="background:${team.color}"></span>
       <input class="team-name" value="${escapeHtml(team.name)}" />
       <button class="btn small ghost danger del-team" type="button">삭제</button>
     `;
@@ -642,18 +652,17 @@ function renderPairings() {
   pairs.forEach(([a, b]) => {
     const total = pairingTotal(a.id, b.id);
     const isActive = m && ((m.teamAId === a.id && m.teamBId === b.id) || (m.teamAId === b.id && m.teamBId === a.id));
-    const lead = total.a > total.b ? "lead-a" : total.b > total.a ? "lead-b" : "";
     const card = document.createElement("div");
-    card.className = `pairing-card ${isActive ? "active" : ""} ${lead}`;
+    card.className = `pairing-card ${isActive ? "active" : ""}`;
     card.innerHTML = `
       <div class="pairing-side left">
-        <div class="pname"><span class="pdot" style="background:${a.color}"></span>${escapeHtml(a.name)}</div>
-        <div class="pscore" style="color:${a.color}">${total.a}</div>
+        <div class="pname">${escapeHtml(a.name)}</div>
+        <div class="pscore">${total.a}</div>
       </div>
       <div class="pairing-divider">:</div>
       <div class="pairing-side right">
-        <div class="pname">${escapeHtml(b.name)}<span class="pdot" style="background:${b.color}"></span></div>
-        <div class="pscore" style="color:${b.color}">${total.b}</div>
+        <div class="pname">${escapeHtml(b.name)}</div>
+        <div class="pscore">${total.b}</div>
       </div>
     `;
     root.appendChild(card);
@@ -759,15 +768,13 @@ function showToast(msg) {
 function showMatchupModal({ mode = "replace" } = {}) {
   if (state.teams.length < 2) { showToast("팀이 2개 이상 필요합니다"); return; }
   const m = currentMatch();
-  let selWhite, selBlack;
-  if (mode === "next" && state.rotation.length > 0) {
-    // Suggest the next pair in the rotation as a default, but the user picks.
-    const nextRot = state.rotation[(state.rotationIdx + 1) % state.rotation.length];
-    selWhite = nextRot.teamAId;
-    selBlack = nextRot.teamBId;
-  } else {
-    selWhite = m ? m.teamAId : state.teams[0].id;
-    selBlack = m ? m.teamBId : state.teams[1].id;
+  // 'next' mode → start empty so the user MUST pick fresh every quarter.
+  // 'replace' mode → seed with current match so a small tweak is one tap.
+  let selWhite = null;
+  let selBlack = null;
+  if (mode === "replace" && m) {
+    selWhite = m.teamAId;
+    selBlack = m.teamBId;
   }
 
   const titleEl = document.getElementById("matchupModalTitle");
@@ -785,7 +792,7 @@ function showMatchupModal({ mode = "replace" } = {}) {
         const btn = document.createElement("button");
         btn.className = "picker-option" + (t.id === selected ? " selected" : "");
         btn.disabled = t.id === otherSelected;
-        btn.innerHTML = `<span class="po-dot" style="background:${t.color}"></span>${escapeHtml(t.name)}`;
+        btn.textContent = t.name;
         btn.addEventListener("click", () => { onPick(t.id); });
         root.appendChild(btn);
       });
@@ -805,6 +812,7 @@ function showMatchupModal({ mode = "replace" } = {}) {
     cancel.removeEventListener("click", cleanup);
   };
   const okHandler = () => {
+    if (!selWhite || !selBlack) { showToast("화이트와 블랙 모두 선택해주세요"); return; }
     if (selWhite === selBlack) { showToast("서로 다른 두 팀을 선택하세요"); return; }
     cleanup();
     if (mode === "next") commitNewMatch(selWhite, selBlack);
@@ -838,6 +846,15 @@ function bindEvents() {
       playWhistle();
       whistleBtn.classList.add("whistle-flash");
       setTimeout(() => whistleBtn.classList.remove("whistle-flash"), 250);
+    });
+  }
+
+  const swapBtn = document.getElementById("swapSidesBtn");
+  if (swapBtn) {
+    swapBtn.addEventListener("click", () => {
+      state.sideSwapped = !state.sideSwapped;
+      saveState();
+      renderTeams();
     });
   }
 
