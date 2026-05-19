@@ -198,7 +198,7 @@ input { user-select: text; -webkit-user-select: text; }
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
-  padding-right: 40px; /* breathing room for the absolute gear button */
+  padding-right: 52px; /* breathing room for the absolute gear button */
 }
 .timer-display { min-width: 0; }
 .timer-display {
@@ -654,12 +654,14 @@ body.edit-mode .edit-only { display: inline-flex; }
   .whistle-section .whistle-icon { font-size: 26px; }
   .whistle-section .whistle-label { font-size: 11px; }
   .timer-section { padding: 8px 12px 10px; }
-  .timer-row { margin-bottom: 8px; }
+  .timer-row { margin-bottom: 8px; padding-right: 44px; }
+  .timer-display { font-size: clamp(44px, 13vw, 76px); }
   .quarter-pill { padding: 4px 10px; font-size: 13px; }
+  .timer-config { top: 8px; right: 8px; padding: 3px 7px; font-size: 13px; }
   .timer-controls { gap: 6px; }
   .timer-controls .btn { flex: 1; min-width: 0; padding: 7px 8px; font-size: 13px; }
   .timer-controls .btn.primary.big { flex: 1.2; }
-  .timer-display { letter-spacing: 1px; font-size: clamp(56px, 17vw, 100px); }
+  .timer-display { letter-spacing: 1px; }
   .score-current { font-size: clamp(56px, 16vw, 92px); }
   .score-area { padding: 8px 8px 4px; }
   .score-area::after { font-size: 10px; top: 4px; right: 6px; }
