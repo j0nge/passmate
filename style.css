@@ -110,6 +110,14 @@ input { user-select: text; -webkit-user-select: text; }
   border-radius: 18px;
   padding: 14px 16px 16px;
   min-width: 0;
+  position: relative;
+}
+.timer-config {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  padding: 4px 8px;
 }
 
 .whistle-section {
@@ -186,11 +194,13 @@ input { user-select: text; -webkit-user-select: text; }
 
 .timer-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+  padding-right: 40px; /* breathing room for the absolute gear button */
 }
+.timer-display { min-width: 0; }
 .timer-display {
   font-size: clamp(72px, 19vw, 144px);
   font-weight: 900;
